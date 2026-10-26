@@ -1,0 +1,436 @@
+<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><title>Leitor de QR — Caju</title><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jsQR/1.4.0/jsQR.js"></script>
+<style>
+  :root{
+    box-sizing:border-box;
+    padding-top:env(safe-area-inset-top,0px);
+    padding-bottom:env(safe-area-inset-bottom,0px);
+    --bg:#f6f6f4; --card:#fff; --fg:#17171a; --muted:#6b6b73; --line:#e2e2de;
+    --accent:#e2603a; --accent-fg:#fff; --ok:#1f7a4d; --warn:#a35b00; --soft:#f0efeb;
+  }
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){
+      --bg:#15151a; --card:#1e1e24; --fg:#f0f0ee; --muted:#9a9aa4; --line:#32323b;
+      --accent:#ef7550; --accent-fg:#1a1a1a; --ok:#4fd18a; --warn:#e0a344; --soft:#272730;
+    }
+  }
+  :root[data-theme="dark"]{
+    --bg:#15151a; --card:#1e1e24; --fg:#f0f0ee; --muted:#9a9aa4; --line:#32323b;
+    --accent:#ef7550; --accent-fg:#1a1a1a; --ok:#4fd18a; --warn:#e0a344; --soft:#272730;
+  }
+  *,*::before,*::after{box-sizing:inherit}
+  html{scroll-padding-top:env(safe-area-inset-top,0px);-webkit-text-size-adjust:100%;height:100%}
+  body{margin:0;min-height:100%;background:var(--bg);color:var(--fg);font-size:16px;line-height:1.45;
+    font-family:ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+  .wrap{max-width:700px;margin:0 auto;padding:14px 13px 44px}
+  h1{font-size:18px;margin:0 0 2px;letter-spacing:-.01em}
+  .sub{margin:0 0 14px;color:var(--muted);font-size:13px}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:13px;margin-bottom:13px}
+  h2{font-size:13px;margin:0 0 9px;letter-spacing:-.01em}
+  .camwrap{position:relative;background:#000;border-radius:11px;overflow:hidden;aspect-ratio:4/3;display:none}
+  .camwrap.on{display:block}
+  video{width:100%;height:100%;object-fit:cover;display:block}
+  .reticle{position:absolute;inset:15% 11%;border:2px solid rgba(255,255,255,.85);border-radius:11px;
+    box-shadow:0 0 0 2000px rgba(0,0,0,.28);transition:border-color .15s}
+  .reticle.hit{border-color:#4fd18a;border-width:3px}
+  button{font:inherit;font-weight:600;border-radius:10px;border:1px solid var(--line);
+    background:var(--soft);color:var(--fg);padding:11px 13px;cursor:pointer;-webkit-tap-highlight-color:transparent}
+  button:active{transform:translateY(1px)}
+  button.primary{background:var(--accent);color:var(--accent-fg);border-color:transparent}
+  button.ghost{background:transparent}
+  button:disabled{opacity:.45}
+  .row{display:flex;gap:8px;flex-wrap:wrap;margin-top:11px}
+  .row>button{flex:1 1 auto;min-width:126px}
+  label{display:block;font-size:11px;font-weight:700;color:var(--muted);margin:10px 0 4px;
+    text-transform:uppercase;letter-spacing:.04em}
+  input[type=text],input[type=url]{width:100%;font:inherit;padding:10px 11px;border-radius:9px;
+    border:1px solid var(--line);background:var(--bg);color:var(--fg)}
+  input:focus{outline:2px solid var(--accent);outline-offset:1px}
+  .auto{display:flex;align-items:center;gap:9px;margin-top:11px;font-size:13.5px}
+  .auto input{width:19px;height:19px;accent-color:var(--accent)}
+  .status{font-size:13.5px;color:var(--muted);margin:10px 0 0;min-height:19px}
+  .status.ok{color:var(--ok)} .status.warn{color:var(--warn)}
+  .tablewrap{overflow-x:auto;-webkit-overflow-scrolling:touch}
+  table{border-collapse:collapse;width:100%;font-size:13px;min-width:430px}
+  th,td{text-align:left;padding:7px 8px;border-bottom:1px solid var(--line);vertical-align:top}
+  th{font-size:10.5px;text-transform:uppercase;letter-spacing:.04em;color:var(--muted);font-weight:700}
+  td.serial{font-family:ui-monospace,Menlo,monospace}
+  tr.enviado td{color:var(--muted)}
+  .del{background:none;border:none;color:var(--muted);font-size:17px;padding:2px 6px;line-height:1}
+  .empty{color:var(--muted);font-size:13.5px;margin:2px 0 0}
+  .count{float:right;font-size:11.5px;color:var(--muted);font-weight:700}
+  details{margin-top:12px}
+  summary{font-size:12.5px;color:var(--muted);cursor:pointer}
+  .hint{font-size:12.5px;color:var(--muted);margin:11px 0 0}
+  .modos{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px}
+  .modos button{padding:9px 8px;font-size:14px}
+  .modos button.on{background:var(--accent);color:var(--accent-fg);border-color:transparent}
+  a.link{color:var(--accent);font-weight:600}
+</style>
+
+<div class="wrap">
+  <h1>Leitor de QR — inventário</h1>
+  <p class="sub">Escolha o modo, leia em sequência e envie pra planilha no fim. <a class="link" href="https://docs.google.com/spreadsheets/d/18RIWyy_Es44Va2no2hTgW8C0ZT-hkrM8t2WWqm4nmSU" target="_blank" rel="noopener">Planilha de recebimento</a></p>
+
+  <div class="card">
+    <div class="camwrap" id="camwrap">
+      <video id="video" playsinline muted></video>
+      <div class="reticle" id="reticle"></div>
+    </div>
+    <div class="row">
+      <button class="primary" id="btnCam">Ligar câmera</button>
+      <button id="btnFoto">Tirar foto</button>
+    </div>
+    <input type="file" accept="image/*" capture="environment" id="arquivo" style="display:none">
+    <div class="auto">
+      <input type="checkbox" id="chkAuto" checked>
+      <label for="chkAuto" style="margin:0;text-transform:none;letter-spacing:0;font-size:13.5px;font-weight:500;color:var(--fg)">Adicionar sozinho ao ler (não precisa tocar na tela)</label>
+    </div>
+    <p class="status" id="status"></p>
+  </div>
+
+  <div class="card">
+    <h2>Modo de leitura</h2>
+    <div class="modos" id="modos">
+      <button data-modo="INV" class="on">Inventário</button>
+      <button data-modo="OFF">Chegada offboarding</button>
+      <button data-modo="OK">Verificada OK</button>
+      <button data-modo="PROBLEMA">Com problema</button>
+    </div>
+    <div id="boxProblema" style="display:none">
+      <label for="problema">Problema desta máquina</label>
+      <input type="text" id="problema" autocomplete="off" placeholder="ex.: bateria inchada, tela riscada">
+    </div>
+    <div id="boxObs">
+      <label for="obsPadrao">Observação aplicada a todos</label>
+      <input type="text" id="obsPadrao" autocomplete="off" placeholder="ex.: inventário sala 3">
+    </div>
+    <label for="modelo">Modelo</label>
+    <input type="text" id="modelo" autocomplete="off" placeholder="preenche ao ler">
+    <label for="serial">Número de série</label>
+    <input type="text" id="serial" autocomplete="off" autocapitalize="characters" placeholder="preenche ao ler">
+    <div class="row">
+      <button class="primary" id="btnAdd">Adicionar à lista</button>
+      <button class="ghost" id="btnLimpar">Limpar</button>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>Lidos <span class="count" id="count">0</span></h2>
+    <div class="tablewrap">
+      <table id="tbl" style="display:none">
+        <thead><tr><th>Hora</th><th>Modelo</th><th>Série</th><th>Obs.</th><th></th></tr></thead>
+        <tbody id="tbody"></tbody>
+      </table>
+    </div>
+    <p class="empty" id="empty">Nada lido ainda.</p>
+    <div class="row">
+      <button class="primary" id="btnEnviar">Enviar para a planilha</button>
+      <button id="btnCopiar">Copiar</button>
+    </div>
+    <div class="row"><button class="ghost" id="btnWipe">Apagar tudo</button></div>
+    <p class="hint">Enviar abre uma aba do Google que grava e mostra a confirmação. Reenviar não duplica: cada registro tem id próprio.</p>
+
+    <details>
+      <summary>Endereço do receptor</summary>
+      <input type="url" id="endpoint" style="margin-top:8px" spellcheck="false">
+      <p class="hint">URL <code>/exec</code> do Apps Script. Só mexa se trocar de implantação.</p>
+    </details>
+  </div>
+</div>
+
+<script>
+(function(){
+  var $=function(i){return document.getElementById(i);};
+  var video=$('video'), camwrap=$('camwrap'), reticle=$('reticle'), status=$('status');
+  var fModelo=$('modelo'), fSerial=$('serial'), fObs=$('obsPadrao'), fEnd=$('endpoint');
+  var stream=null, running=false, lastText='', lastAt=0, detector=null, rows=[], rawAtual='';
+  var canvas=document.createElement('canvas'), ctx=canvas.getContext('2d',{willReadFrequently:true});
+  var PADRAO='https://script.google.com/a/macros/caju.com.br/s/AKfycbyjaru32v90BkxU41sIhTgfijRi0GZbmLM6qdRo8zM6RAA-13MxdAU38ifrxE96agqy/exec';
+  var LOTE=25, modo='INV';
+  function obsAtual(){
+    if(modo==='OFF') return 'OFF';
+    if(modo==='OK') return 'OK';
+    if(modo==='PROBLEMA'){ var t=$('problema').value.trim(); return t?('PROBLEMA: '+t):''; }
+    return fObs.value.trim();
+  }
+  function setModo(m){
+    modo=m; ls('qr.modo',m);
+    [].forEach.call($('modos').children,function(b){ b.className=(b.getAttribute('data-modo')===m)?'on':''; });
+    $('boxProblema').style.display=(m==='PROBLEMA')?'':'none';
+    $('boxObs').style.display=(m==='INV')?'':'none';
+    if(m==='PROBLEMA') say('Modo problema: leia, descreva o problema e toque em Adicionar.','warn');
+    else say(m==='OFF'?'Modo chegada: cada leitura vai como OFF.':m==='OK'?'Modo verificação: cada leitura vai como OK.':'');
+  }
+
+  function say(m,c){ status.textContent=m||''; status.className='status'+(c?' '+c:''); }
+  function ls(k,v){ try{ if(v===undefined) return localStorage.getItem(k); localStorage.setItem(k,v); }catch(e){ return null; } }
+
+  /* estado */
+  function carrega(){
+    try{ rows=JSON.parse(ls('qr.rows')||'[]')||[]; }catch(e){ rows=[]; }
+    if(!Array.isArray(rows)) rows=[];
+    fEnd.value=ls('qr.endpoint')||PADRAO;
+    fObs.value=ls('qr.obs')||'';
+    var a=ls('qr.auto'); if(a==='0') $('chkAuto').checked=false;
+    [].forEach.call($('modos').children,function(b){ b.onclick=function(){ setModo(b.getAttribute('data-modo')); }; });
+    var mm=ls('qr.modo'); if(mm&&mm!=='INV') setModo(mm);
+    render();
+  }
+  function salva(){ try{ ls('qr.rows',JSON.stringify(rows)); }catch(e){} render(); }
+  fEnd.onchange=function(){ ls('qr.endpoint',fEnd.value.trim()); };
+  fObs.onchange=function(){ ls('qr.obs',fObs.value.trim()); };
+  $('chkAuto').onchange=function(){ ls('qr.auto',this.checked?'1':'0'); };
+
+  /* parse */
+  var K_SER=['sn','s/n','serial','serialnumber','svctag','servicetag','st','nserie','numserie','serie'];
+  var K_MOD=['model','modelo','mn','mtm','machinetype','product','produto','pn','tipo'];
+  function norm(k){ return String(k||'').toLowerCase().replace(/[\s_\-\.\/]/g,''); }
+  function naLista(k,l){ var n=norm(k); for(var i=0;i<l.length;i++) if(norm(l[i])===n) return true; return false; }
+
+  function parseQR(text){
+    var raw=String(text||'').trim(), out={modelo:'',serial:''};
+    if(!raw) return out;
+    if(raw.charAt(0)==='{'){
+      try{
+        var j=JSON.parse(raw);
+        for(var k in j){ if(!Object.prototype.hasOwnProperty.call(j,k)) continue;
+          var v=String(j[k]).trim();
+          if(!out.serial&&naLista(k,K_SER)) out.serial=v;
+          else if(!out.modelo&&naLista(k,K_MOD)) out.modelo=v;
+        }
+        if(out.serial||out.modelo) return out;
+      }catch(e){}
+    }
+    var partes=raw.split(/[\n;|]+/).map(function(s){return s.trim();}).filter(Boolean);
+    var soltos=[], achouChave=false;
+    partes.forEach(function(p){
+      var m=p.match(/^([A-Za-z\/ _\-]{1,20})\s*[:=]\s*(.+)$/);
+      if(m){
+        var k=m[1].trim(), v=m[2].trim();
+        if(!out.serial&&naLista(k,K_SER)){ out.serial=v; achouChave=true; return; }
+        if(!out.modelo&&naLista(k,K_MOD)){ out.modelo=v; achouChave=true; return; }
+        soltos.push(v);
+      } else soltos.push(p);
+    });
+    if(achouChave&&(out.serial||out.modelo)) return out;
+    (soltos.length?soltos:partes).forEach(function(v){
+      var ehSerial=/^[A-Za-z0-9]{5,20}$/.test(v)&&/\d/.test(v);
+      if(ehSerial&&!out.serial) out.serial=v.toUpperCase();
+      else if(!out.modelo&&v.length>2) out.modelo=v;
+    });
+    if(!out.serial&&!out.modelo) out.serial=raw;
+    return out;
+  }
+
+  function beep(f){
+    try{
+      var AC=window.AudioContext||window.webkitAudioContext; if(!AC) return;
+      var c=new AC(),o=c.createOscillator(),g=c.createGain();
+      o.type='sine'; o.frequency.value=f||880; g.gain.value=.07;
+      o.connect(g); g.connect(c.destination); o.start();
+      setTimeout(function(){o.stop();c.close();},120);
+    }catch(e){}
+  }
+
+  function achou(text){
+    var now=Date.now();
+    if(text===lastText&&now-lastAt<2500) return;
+    lastText=text; lastAt=now;
+    reticle.className='reticle hit'; setTimeout(function(){reticle.className='reticle';},450);
+
+    var p=parseQR(text);
+    rawAtual=text;
+    fModelo.value=p.modelo; fSerial.value=p.serial;
+
+    if($('chkAuto').checked&&modo!=='PROBLEMA'){
+      var jaTem=rows.some(function(r){ return r.serial&&p.serial&&r.serial.toUpperCase()===p.serial.toUpperCase(); });
+      if(jaTem){ beep(420); say('Esse já está na lista: '+p.serial,'warn'); return; }
+      adiciona(); beep(880);
+    } else {
+      beep(880);
+      if(navigator.vibrate) try{navigator.vibrate(60);}catch(e){}
+      say('Lido. Confira e adicione.','ok');
+    }
+  }
+
+  /* câmera */
+  function paraCam(){
+    running=false;
+    if(stream){ stream.getTracks().forEach(function(t){t.stop();}); stream=null; }
+    camwrap.className='camwrap'; $('btnCam').textContent='Ligar câmera';
+  }
+  function ligaCam(){
+    if(!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia){
+      say('Este navegador não expõe a câmera. Use "Tirar foto".','warn'); return;
+    }
+    say('Pedindo acesso à câmera…');
+    navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:'environment'},width:{ideal:1280}},audio:false})
+    .then(function(s){ stream=s; video.srcObject=s; return video.play(); })
+    .then(function(){
+      camwrap.className='camwrap on'; $('btnCam').textContent='Parar câmera';
+      say('Aponte pro QR.'); running=true;
+      if(!detector&&'BarcodeDetector' in window){
+        try{ detector=new window.BarcodeDetector({formats:['qr_code']}); }catch(e){ detector=null; }
+      }
+      loop();
+    })
+    .catch(function(err){
+      var n=err&&err.name;
+      if(n==='NotAllowedError') say('Permissão negada. Libere a câmera para este site nas configurações do navegador.','warn');
+      else say('Não consegui abrir a câmera ('+(n||'erro')+'). Use "Tirar foto".','warn');
+    });
+  }
+  function loop(){
+    if(!running) return;
+    if(video.readyState===video.HAVE_ENOUGH_DATA&&video.videoWidth){
+      if(detector){
+        detector.detect(video).then(function(c){ if(c&&c.length) achou(String(c[0].rawValue||'').trim()); })
+          .catch(function(){ detector=null; });
+      } else if(window.jsQR){
+        var w=Math.min(700,video.videoWidth), h=Math.round(video.videoHeight*(w/video.videoWidth));
+        canvas.width=w; canvas.height=h; ctx.drawImage(video,0,0,w,h);
+        try{
+          var d=ctx.getImageData(0,0,w,h);
+          var c2=window.jsQR(d.data,w,h,{inversionAttempts:'dontInvert'});
+          if(c2&&c2.data) achou(String(c2.data).trim());
+        }catch(e){}
+      }
+    }
+    setTimeout(function(){ requestAnimationFrame(loop); },100);
+  }
+
+  /* foto */
+  function decodificaImagem(im){
+    var tentativas=[[1400,1],[900,1],[2000,1],[1400,.6],[900,.45]];
+    for(var i=0;i<tentativas.length;i++){
+      var max=tentativas[i][0], crop=tentativas[i][1];
+      var sw=im.width*crop, sh=im.height*crop, sx=(im.width-sw)/2, sy=(im.height-sh)/2;
+      var esc=Math.min(1,max/Math.max(sw,sh));
+      var w=Math.max(1,Math.round(sw*esc)), h=Math.max(1,Math.round(sh*esc));
+      canvas.width=w; canvas.height=h;
+      ctx.drawImage(im,sx,sy,sw,sh,0,0,w,h);
+      try{
+        var d=ctx.getImageData(0,0,w,h);
+        var c=window.jsQR(d.data,w,h,{inversionAttempts:'attemptBoth'});
+        if(c&&c.data) return String(c.data).trim();
+      }catch(e){}
+    }
+    return '';
+  }
+  $('btnFoto').onclick=function(){ $('arquivo').click(); };
+  $('arquivo').onchange=function(e){
+    var f=e.target.files&&e.target.files[0]; if(!f) return;
+    if(!window.jsQR){ say('Biblioteca de leitura não carregou.','warn'); e.target.value=''; return; }
+    say('Lendo a foto…');
+    var r=new FileReader();
+    r.onload=function(){
+      var im=new Image();
+      im.onload=function(){
+        var t=decodificaImagem(im);
+        if(t){ lastText=''; achou(t); }
+        else say('Não achei QR nessa foto. Enquadre só a etiqueta e refaça.','warn');
+      };
+      im.src=r.result;
+    };
+    r.readAsDataURL(f);
+    e.target.value='';
+  };
+
+  /* lista */
+  function hora(){ var d=new Date(),p=function(n){return String(n).padStart(2,'0');}; return p(d.getHours())+':'+p(d.getMinutes()); }
+  function novoId(){ return Date.now().toString(36)+Math.random().toString(36).slice(2,7); }
+
+  function adiciona(){
+    var s=fSerial.value.trim(), m=fModelo.value.trim();
+    if(!s&&!m){ say('Nada pra adicionar.','warn'); return; }
+    if(modo==='PROBLEMA'&&!$('problema').value.trim()){ say('Descreva o problema antes de adicionar.','warn'); return; }
+    rows.push({id:novoId(),hora:hora(),modelo:m,serial:s,obs:obsAtual(),raw:rawAtual,enviado:false});
+    if(modo==='PROBLEMA') $('problema').value='';
+    salva();
+    fModelo.value=''; fSerial.value=''; rawAtual='';
+    say('Adicionado: '+(s||m)+'  ('+rows.length+' na lista)','ok');
+  }
+  $('btnAdd').onclick=adiciona;
+  $('btnLimpar').onclick=function(){ fModelo.value=''; fSerial.value=''; rawAtual=''; lastText=''; say(''); };
+
+  function render(){
+    var tb=$('tbody'); tb.innerHTML='';
+    var pend=rows.filter(function(r){return !r.enviado;}).length;
+    $('count').textContent=rows.length+(pend?' · '+pend+' a enviar':' · tudo enviado');
+    $('tbl').style.display=rows.length?'':'none';
+    $('empty').style.display=rows.length?'none':'';
+    rows.slice().reverse().forEach(function(r){
+      var tr=document.createElement('tr');
+      if(r.enviado) tr.className='enviado';
+      [[r.hora,''],[r.modelo,''],[r.serial,'serial'],[r.obs,'']].forEach(function(p){
+        var td=document.createElement('td'); if(p[1]) td.className=p[1]; td.textContent=p[0]||''; tr.appendChild(td);
+      });
+      var tdx=document.createElement('td');
+      var b=document.createElement('button'); b.className='del'; b.textContent='×';
+      b.onclick=function(){ var i=rows.indexOf(r); if(i>=0){ rows.splice(i,1); salva(); } };
+      tdx.appendChild(b); tr.appendChild(tdx);
+      tb.appendChild(tr);
+    });
+  }
+
+  /* envio */
+  $('btnEnviar').onclick=function(){
+    var base=(fEnd.value||'').trim();
+    if(!/^https:\/\/script\.google\.com\//.test(base)){ say('Endereço do receptor inválido.','warn'); return; }
+    var pend=rows.filter(function(r){ return !r.enviado; });
+    if(!pend.length){ say('Nada pendente pra enviar.','warn'); return; }
+
+    var envio=pend.slice(0,LOTE);
+    var payload=envio.map(function(r){ return {id:r.id,modelo:r.modelo,serial:r.serial,obs:r.obs,raw:r.raw}; });
+    var url=base+'?lote='+encodeURIComponent(JSON.stringify(payload));
+    if(url.length>7500){
+      envio=envio.slice(0,12);
+      payload=envio.map(function(r){ return {id:r.id,modelo:r.modelo,serial:r.serial,obs:r.obs,raw:''}; });
+      url=base+'?lote='+encodeURIComponent(JSON.stringify(payload));
+    }
+
+    var a=document.createElement('a');
+    a.href=url; a.target='_blank'; a.rel='noopener';
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+
+    envio.forEach(function(r){ r.enviado=true; });
+    salva();
+    var resto=rows.filter(function(r){return !r.enviado;}).length;
+    say('Enviei '+envio.length+'. Confira a aba que abriu.'+(resto?' Ainda faltam '+resto+', toque de novo.':''),'ok');
+  };
+
+  $('btnCopiar').onclick=function(){
+    if(!rows.length){ say('Lista vazia.','warn'); return; }
+    var txt=['Hora\tModelo\tNumero de serie\tObservacao'];
+    rows.forEach(function(r){ txt.push([r.hora,r.modelo,r.serial,r.obs].join('\t')); });
+    var s=txt.join('\n');
+    var ok=function(){ say('Copiado. Cola no Sheets.','ok'); };
+    if(navigator.clipboard&&navigator.clipboard.writeText) navigator.clipboard.writeText(s).then(ok).catch(fb);
+    else fb();
+    function fb(){
+      var ta=document.createElement('textarea'); ta.value=s; ta.style.position='fixed'; ta.style.opacity='0';
+      document.body.appendChild(ta); ta.select();
+      try{ document.execCommand('copy'); ok(); }catch(e){ say('Não consegui copiar.','warn'); }
+      document.body.removeChild(ta);
+    }
+  };
+
+  $('btnWipe').onclick=function(){
+    if(!rows.length) return;
+    var pend=rows.filter(function(r){return !r.enviado;}).length;
+    var msg=pend?('Apagar tudo? '+pend+' registro(s) ainda NÃO foram enviados.'):'Apagar os '+rows.length+' registros da lista?';
+    if(confirm(msg)){ rows=[]; salva(); say('Lista zerada.'); }
+  };
+
+  $('btnCam').onclick=function(){ running?paraCam():ligaCam(); };
+
+  setTimeout(function(){
+    if(!window.jsQR&&!('BarcodeDetector' in window)) say('A biblioteca de leitura não carregou. Os campos manuais funcionam.','warn');
+  },4000);
+
+  carrega();
+})();
+</script>
+
+</body></html>
